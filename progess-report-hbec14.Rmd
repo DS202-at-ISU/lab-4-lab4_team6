@@ -1,0 +1,13 @@
+---
+title: "lab 4"
+author: "Hazer Becic"
+date: "2024-04-17"
+output: github_document 
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
