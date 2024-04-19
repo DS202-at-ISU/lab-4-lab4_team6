@@ -11,20 +11,68 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## R Markdown
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+```{r}
+library(rvest)
+library(Lahman)
+library(dplyr)
+library(tidyverse)
+head(HallOfFame)
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+url <- 'https://www.baseball-reference.com/awards/hof_2023.shtml'
 
-```{r cars}
-summary(cars)
+html <- read_html(url)
+
+tables <- html %>% html_table(fill=TRUE)
+tables %>% str()
+
+scraped_data <- tables[[1]]  # Adjust the index if needed
+
+colnames(scraped_data) <- c("playerID", "yearID", "votedBy", "ballots", "needed", "votes", "inducted", "category", "needed_note")
+scraped_data=scraped_data[-1,]
+
+scraped_data$votes=scraped_data$ballots
+scraped_data$playerID=scraped_data$yearID
+scraped_data$yearID=2023
+scraped_data$category='Player'
+scraped_data$needed_note=NA
+scraped_data$votedBy='BBWAA'
+scraped_data$ballots=389
+scraped_data$needed=292
+scraped_data$inducted <- ifelse(scraped_data$votes > scraped_data$needed, "Y", "N")
+
+scraped_data <- scraped_data[, 1:9]
+
+scraped_data <- scraped_data %>%
+  mutate(playerID = str_replace(playerID, "^X-", ""))
+
+scraped_data$playerID[2] <- "Todd Helton"
+scraped_data$playerID[6] <- "Carlos Beltran"
+scraped_data$playerID[15] <- "Francisco Rodriguez"
+
+scraped_data
+
+people_data <- Lahman::People %>%
+  mutate(full_name = paste(nameFirst, nameLast, sep = " "))
+
+matched_data <- left_join(scraped_data, people_data, by = c("playerID" = "full_name")) %>%
+  select(playerID.y)  
+
+colnames(matched_data) <- "playerID"
+matched_data=matched_data[-15,]
+scraped_data$playerID=matched_data$playerID
+scraped_data$playerID[21]='dickera01'
+scraped_data$playerID[23]='hardyjj01'
+
+scraped_data
+
+HallOfFame <- rbind(HallOfFame, scraped_data)
+tail(HallOfFame)
+
+
 ```
 
-## Including Plots
 
-You can also embed plots, for example:
 
-```{r pressure, echo=FALSE}
-plot(pressure)
-```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+
